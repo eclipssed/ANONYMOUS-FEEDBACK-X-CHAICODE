@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     if (!foundUser) {
       return NextResponse.json({ status: 400, messae: "user doesn't exist" });
     }
-    console.log("user exists");
+    
     const validPassowrd = await bcryptjs.compare(password, foundUser.password);
     if (!validPassowrd) {
       return NextResponse.json({ status: 400, message: "invalid credentials" });
@@ -29,13 +29,14 @@ export async function POST(request: NextRequest) {
       expiresIn: "1d",
     });
 
-    const response = await NextResponse.json({
+    const response =  NextResponse.json({
       status: 200,
       success: true,
       message: "logged in successfully",
     });
 
-    response.cookies.set("token", token, { httpOnly: true });
+    response.cookies.set("token", token, { httpOnly: true, expires:  Date.now() + 360000 });
+    
     return response;
   } catch (error: any) {
     return NextResponse.json({ status: 500, error: error.message });

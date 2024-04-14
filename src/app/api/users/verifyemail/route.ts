@@ -12,6 +12,7 @@ export async function POST(request: NextRequest) {
       verifyTokenExpiry: { $gt: Date.now() },
     });
     if (!user) {
+      
       return NextResponse.json({ status: 400, error: "invlaid token" });
     }
     user.isVerified = true;
