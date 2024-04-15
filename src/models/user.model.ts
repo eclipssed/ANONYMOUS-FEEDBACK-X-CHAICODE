@@ -1,34 +1,76 @@
-import mongoose from "mongoose";
+import mongoose, { Document, Schema, mongo } from "mongoose";
 
-const userSchema = new mongoose.Schema({
+export interface Message extends Document {
+  content: string;
+  createdAt: Date;
+}
+
+export interface User extends Document {
+  username: string;
+  email: string;
+  password: string;
+  verifyCode: string;
+  verifyCodeExpiry: Date;
+  isVerified: boolean;
+  isAcceptingMessages: boolean;
+  messages: Message[];
+}
+
+const MessageSchema: Schema<Message> = new Schema({
+  content: {
+    type: String,
+    required: true,
+  },
+  createdAt: {
+    type: Date,
+    required: true,
+    default: Date.now,
+  },
+});
+
+const UserSchema: Schema<User> = new Schema({
   username: {
     type: String,
-    required: [true, "Please provide a username"],
+    required: [true, "username is required"],
     unique: true,
+    trim: true,
   },
   email: {
     type: String,
-    required: [true, "Please provide an email"],
+    required: [true, "email is required"],
     unique: true,
+    match: [
+      /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$/,
+      "please use a valid email address.",
+    ],
   },
   password: {
     type: String,
-    required: [true, "Please provide a password"],
+    required: [true, "password is required"],
+  },
+  verifyCode: {
+    type: String,
+    required: [true, "verifyCode is required"],
+  },
+  verifyCodeExpiry: {
+    type: Date,
+    required: [true, "verifyCodeExpiry is required"],
   },
   isVerified: {
     type: Boolean,
     default: false,
   },
-  isAdmin: {
+  isAcceptingMessages: {
     type: Boolean,
-    default: false,
+    default: true,
   },
-
-  forgotPasswordToken: String,
-  forgotPasswordTokenExpiry: Date,
-  verifyToken: String,
-  verifyTokenExpiry: Date,
+  messages: {
+    messages: [MessageSchema],
+  },
 });
 
-const User = mongoose.models.users || mongoose.model("users", userSchema);
-export default User;
+const UserModel =
+  (mongoose.models.User as mongoose.Model<User>) ||
+  mongoose.model<User>("User", UserSchema);
+
+export default UserModel;
