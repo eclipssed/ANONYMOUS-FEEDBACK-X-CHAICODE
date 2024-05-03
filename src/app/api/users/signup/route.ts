@@ -1,5 +1,5 @@
 import dbConnect from "@/lib/dbConnect";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import bcryptjs from "bcryptjs";
 import { sendVerificationEmail } from "@/helpers/sendVerificationEmail";
 import UserModel from "@/models/user.model";
@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
       isVerified: true,
     });
     if (existingUserVerifiedByUsername) {
-      return NextResponse.json({
+      return Response.json({
         status: 400,
         success: false,
         error: "Username is already taken.",
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     const verifyCode = Math.floor(100000 + Math.random() * 900000).toString();
     if (existingUserByEmail) {
       if (existingUserByEmail.isVerified) {
-        return NextResponse.json({
+        return Response.json({
           status: 400,
           message: "User already exists with this email.",
           success: false,
@@ -67,14 +67,19 @@ export async function POST(request: NextRequest) {
       verifyCode
     );
     if (!emailResponse.success) {
-      return NextResponse.json({
-        status: 500,
-        message: emailResponse.message,
-        success: false,
-      });
+      return Response.json(
+        {
+          status: 400,
+          message: emailResponse.message,
+          success: false,
+        },
+        {
+          status: 400,
+        }
+      );
     }
 
-    return NextResponse.json({
+    return Response.json({
       status: 200,
       sucess: true,
       message:
@@ -82,7 +87,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.log("error registering user.");
-    return NextResponse.json({
+    return Response.json({
       status: 500,
       success: false,
       message: "error reegistering user.",

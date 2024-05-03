@@ -1,94 +1,197 @@
 "use client";
 
-import axios from "axios";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
 import Link from "next/link";
+import axios, { AxiosError } from "axios";
+import { useEffect, useState } from "react";
+import { useDebounceCallback } from "usehooks-ts";
+import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
-import toast from "react-hot-toast";
+import { signupSchema } from "@/schemas/signupSchema";
+import { apiResponse } from "@/types/apiResponse";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Loader2 } from "lucide-react";
 
 const signupPage = () => {
-  const router = useRouter();
-  const [user, setUser] = useState({
-    username: "",
-    email: "",
-    password: "",
-  });
-  const [buttonDisabled, setButtonDisabled] = useState(true);
-  const [loading, setLoading] = useState(false);
+  const [username, setUsername] = useState("");
+  const [usernameMessage, setUsernameMessage] = useState("");
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const onSignUp = async () => {
-    try {
-      setLoading(true)
-      const response = await axios.post("/api/users/signup", user);
-      console.log(response);
-      if (response.status === 200) {
-        toast.success("signup up successfully");
-        router.push("/login");
-      }
-      setLoading(false)
-    } catch (error: any) {
-      console.log("signUp failed, please try again later.");
-      toast.error("signUp failed, please try again later.");
-    }
-  };
+  const debounced = useDebounceCallback(setUsername, 500);
+  const { toast } = useToast();
+  const router = useRouter();
+
+  // zod implementation
+  const form = useForm<z.infer<typeof signupSchema>>({
+    resolver: zodResolver(signupSchema),
+    defaultValues: {
+      username: "",
+      email: "",
+      password: "",
+    },
+  });
 
   useEffect(() => {
-    if (
-      user.email.length > 0 &&
-      user.password.length > 0 &&
-      user.username.length > 0
-    ) {
-      setButtonDisabled(false);
-    } else {
-      setButtonDisabled(true);
-    }
-  }, [user]);
-  const handleChange = (e: any) => {
-    setUser((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  };
-  return (
-    <div className="flex flex-col gap-4 items-center justify-center">
-      <h1>{loading ? "Processing" : "sign Up"}</h1>
-      <hr />
-      <label htmlFor="username">Username</label>
-      <input
-        className="border border-gray-300 p-2 rounded-lg mb-4 focus:outline-none focus:border-gray-600 text-black"
-        type="text"
-        name="username"
-        onChange={handleChange}
-        placeholder="leo..."
-        id="username"
-        value={user.username}
-      />
-      <label htmlFor="username">Email</label>
-      <input
-        className="border border-gray-300 p-2 rounded-lg mb-4 focus:outline-none focus:border-gray-600 text-black"
-        type="text"
-        name="email"
-        onChange={handleChange}
-        placeholder="leo@gmial.com"
-        id="email"
-        value={user.email}
-      />
-      <label htmlFor="username">Password</label>
-      <input
-        className="border border-gray-300 p-2 rounded-lg mb-4 focus:outline-none focus:border-gray-600 text-black"
-        type="password"
-        name="password"
-        onChange={handleChange}
-        placeholder="123..."
-        id="password"
-        value={user.password}
-      />
-      <button
-        disabled={buttonDisabled}
-        className={` p-2 rounded-lg hover:cursor-pointer ${buttonDisabled ? "bg-red-500 " : "bg-green-500"}`}
-        onClick={onSignUp}
-      >
-        Sign up
-      </button>
-      <p>Already have an account. Visit <Link className="text-blue-500" href={'/login'}>login</Link> page.</p>
+    const checkUsernameUnique = async () => {
+      if (username) {
+        setIsCheckingUsername(true);
+        setUsernameMessage("");
+        try {
+          const response = await axios.get(
+            `/api/check-unique-username?username=${username}`
+          );
+          // let abc = response.data.message;
+          // console.log(abc);
+        
+            setUsernameMessage(response.data.message);
+          
+          // console.log(usernameMessage);
+        } catch (error) {
+          const axiosError = error as AxiosError<apiResponse>;
+          setUsername(
+            axiosError.response?.data.message ?? "Error checking username."
+          );
+        } finally {
+          setIsCheckingUsername(false);
+        }
+      }
+    };
 
+    checkUsernameUnique();
+  }, [username]);
+
+  const onSubmit = async (data: z.infer<typeof signupSchema>) => {
+    setIsSubmitting(true);
+    try {
+      const response = await axios.post<apiResponse>("/api/users/signup", data);
+      if (response.data.success) {
+        toast({
+          title: "Success",
+          description: response.data.message,
+        });
+        router.replace(`/verify/${username}`);
+      } else {
+        toast({
+          title: "Failed",
+          description: response.data.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error is signup of user", error);
+      const axiosError = error as AxiosError<apiResponse>;
+      let errorMessage = axiosError.response?.data.message;
+      toast({
+        title: "Signup Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-md">
+      <div className="text-center">
+        <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl mb-6">
+          Join free feedback
+        </h1>
+        <p className="mb-4">Sign up to start your anonymous adventure</p>
+      </div>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <FormField
+            control={form.control}
+            name="username"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Username</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="username..."
+                    {...field}
+                    onChange={(e) => {
+                      field.onChange(e);
+                      debounced(e.target.value);
+                    }}
+                  />
+                </FormControl>
+                {isCheckingUsername && <Loader2 className="animate-spin" />}
+                {!isCheckingUsername && usernameMessage && (
+                  <p
+                    className={`text-sm ${
+                      usernameMessage === "Username is unique"
+                        ? "text-green-500"
+                        : "text-red-500"
+                    }`}
+                  >
+                    {usernameMessage}
+                  </p>
+                )}
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email</FormLabel>
+                <FormControl>
+                  <Input placeholder="email..." {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Password</FormLabel>
+                <FormControl>
+                  <Input type="password" placeholder="password..." {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Please wait
+              </>
+            ) : (
+              "Sign Up"
+            )}
+          </Button>
+        </form>
+      </Form>
+      <div className="text-center mt-4">
+        <p>
+          Already a member?{" "}
+          <Link href="/sign-in" className="text-blue-600 hover:text-blue-800">
+            Sign in
+          </Link>
+        </p>
+      </div>
     </div>
   );
 };
