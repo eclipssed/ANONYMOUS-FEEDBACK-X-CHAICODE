@@ -18,10 +18,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { signinSchema } from "@/schemas/signinSchema";
 import { signIn } from "next-auth/react";
+import { Loader2 } from "lucide-react";
+import { useState } from "react";
 
 const signinPage = () => {
   const { toast } = useToast();
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
 
   // zod implementation
   const form = useForm<z.infer<typeof signinSchema>>({
@@ -33,6 +36,7 @@ const signinPage = () => {
   });
 
   const onSubmit = async (data: z.infer<typeof signinSchema>) => {
+    setIsLoading(true);
     const result = await signIn("credentials", {
       redirect: false,
       identifier: data.identifier,
@@ -48,6 +52,7 @@ const signinPage = () => {
     if (result?.url) {
       router.replace("/dashboard");
     }
+    setIsLoading(false);
   };
 
   return (
@@ -91,9 +96,18 @@ const signinPage = () => {
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full">
-              Sign in
-            </Button>
+            
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Please wait
+                  </>
+                ) : (
+                  "Sign In"
+                )}
+              </Button>
+           
           </form>
         </Form>
         <div className="text-center mt-4">

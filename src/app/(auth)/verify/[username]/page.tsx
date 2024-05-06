@@ -14,6 +14,7 @@ import { verifySchema } from "@/schemas/verifySchema";
 import { apiResponse } from "@/types/apiResponse";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios, { AxiosError } from "axios";
+import { Loader2 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -22,12 +23,14 @@ import * as z from "zod";
 const verifyPage = () => {
   const router = useRouter();
   const params = useParams<{ username: string }>();
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const form = useForm<z.infer<typeof verifySchema>>({
     resolver: zodResolver(verifySchema),
   });
 
   const onSubmit = async (data: z.infer<typeof verifySchema>) => {
+    setIsLoading(true);
     try {
       const response = await axios.post("/api/verify-code", {
         username: params.username,
@@ -55,6 +58,8 @@ const verifyPage = () => {
           "An error occurred. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -83,7 +88,19 @@ const verifyPage = () => {
                 </FormItem>
               )}
             />
-            <Button type="submit">Verify</Button>
+            {/* <Button type="submit">Verify</Button> */}
+            <>
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Please wait
+                  </>
+                ) : (
+                  "Verify"
+                )}
+              </Button>
+            </>
           </form>
         </Form>
       </div>
