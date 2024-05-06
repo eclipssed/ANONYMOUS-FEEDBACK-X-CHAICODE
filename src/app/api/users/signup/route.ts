@@ -72,16 +72,13 @@ export async function POST(request: NextRequest) {
           status: 400,
           message: emailResponse.message,
           success: false,
-        },
-        {
-          status: 400,
         }
       );
     }
 
     return Response.json({
       status: 200,
-      sucess: true,
+      success: true,
       message:
         "User created successfully. Please verify your email to claim your username.",
     });
