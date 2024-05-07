@@ -1,4 +1,4 @@
-import mongoose, { Document, Schema, mongo } from "mongoose";
+import mongoose, { Document, Schema } from "mongoose";
 
 export interface Message extends Document {
   content: string;
@@ -16,7 +16,7 @@ export interface User extends Document {
   messages: Message[];
 }
 
-const MessageSchema: Schema<Message> = new Schema({
+const MessageSchema: Schema<Message> = new mongoose.Schema({
   content: {
     type: String,
     required: true,
@@ -64,9 +64,7 @@ const UserSchema: Schema<User> = new Schema({
     type: Boolean,
     default: true,
   },
-  messages: {
-    messages: [MessageSchema],
-  },
+  messages: [MessageSchema],
 });
 
 const UserModel =

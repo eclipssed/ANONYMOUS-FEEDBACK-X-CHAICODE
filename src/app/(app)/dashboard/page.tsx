@@ -1,5 +1,6 @@
-'use client'
+"use client";
 
+import { MessageCard } from "@/components/MessageCard";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
@@ -25,7 +26,7 @@ const dashboardPage = () => {
   const handleDeleteMessage = async (messageId: string) => {
     setMessages(
       messages.filter((message) => {
-        message._id !== messageId;
+        return message._id !== messageId;
       })
     );
   };
@@ -43,6 +44,7 @@ const dashboardPage = () => {
     setIsSwitchLoading(true);
     try {
       const response = await axios.get<apiResponse>("/api/accept-messages");
+      // console.log(response)
       setValue("isAcceptingMessages", response.data.isAcceptingMessages);
     } catch (error) {
       const axiosError = error as AxiosError<apiResponse>;
@@ -56,15 +58,16 @@ const dashboardPage = () => {
     } finally {
       setIsSwitchLoading(false);
     }
-  }, [setValue]);
+  }, [setValue, toast]);
 
   const fetchMessages = useCallback(
     async (refresh: boolean = false) => {
       setIsLoading(true);
-      setIsSwitchLoading(false);
+      setIsSwitchLoading(true);
       // setIsSwitchLoading(true)
       try {
         const response = await axios.get<apiResponse>("/api/get-messages");
+      
         setMessages(response.data.messages || []);
         if (refresh) {
           toast({
@@ -98,13 +101,21 @@ const dashboardPage = () => {
   const handleSwitchChange = async () => {
     try {
       const response = await axios.post<apiResponse>("/api/accept-messages", {
-        isAcceptingMessages: isAcceptingMessages,
+        isAcceptingMessages: !isAcceptingMessages,
       });
-      setValue("isAcceptingMessages", !isaAcceptingMessagesSchema);
-      toast({
-        title: "Success",
-        description: response.data.message,
-      });
+
+      if (response.data.success) {
+        setValue("isAcceptingMessages", !isAcceptingMessages);
+        toast({
+          title: "Success",
+          description: response.data.message,
+        });
+      } else {
+        toast({
+          title: "Failed",
+          description: response.data.message,
+        });
+      }
     } catch (error) {
       const axiosError = error as AxiosError<apiResponse>;
       toast({
@@ -116,23 +127,30 @@ const dashboardPage = () => {
       });
     }
   };
-  
-  const copyToClipboard = ()=> {
-    navigator.clipboard.writeText(profileUrl)
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(profileUrl);
     toast({
       title: "URL copied",
-      description: "profile URL has been copied to clipboard"
-      
-    })
-  }
-
-  const {username} = session?.user
-  const baseUrl = `${window.location.protocol}//${window.location.host}`
-  const profileUrl = `${baseUrl}/u/${username}`
+      description: "profile URL has been copied to clipboard",
+    });
+  };
+  const user: User = session?.user as User;
+  const username = user?.username;
+  const baseUrl = `${window.location.protocol}//${window.location.host}`;
+  const profileUrl = `${baseUrl}/u/${username}`;
 
   if (!session || !session.user) {
-    return <div>Please Login</div>;
-    // router.replace("/signin");
+    return (
+      <div className="max-w-sm rounded overflow-hidden shadow-lg bg-white">
+        <div className="px-6 py-4">
+          <div className="font-bold text-xl mb-2">Welcome!</div>
+          <p className="text-gray-700 text-base mb-4">
+            Please log in to access exclusive content and features.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
