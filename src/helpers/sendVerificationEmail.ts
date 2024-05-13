@@ -10,7 +10,6 @@ export async function sendVerificationEmail(
   otp: string,
 ): Promise<apiResponse> {
   try {
-
     const data = await resend.emails.send({
       from: 'Acme <onboarding@resend.dev>',
       to: email,
